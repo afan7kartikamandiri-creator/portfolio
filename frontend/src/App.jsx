@@ -9,7 +9,7 @@ const API = import.meta.env.VITE_API_BASE || "";
 
 // Endpoint Formspree untuk contact form (gratis, tanpa backend).
 // Ganti XXXXXXXX dengan ID form dari dashboard Formspree-mu.
-const FORMSPREE = "https://formspree.io/f/XXXXXXXX";
+const FORMSPREE = "https://formspree.io/f/mwvjndzw";
 
 // Confetti kecil (canvas murni, tanpa library). Meledak dari titik (x, y).
 function fireConfetti(x, y) {
