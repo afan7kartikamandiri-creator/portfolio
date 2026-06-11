@@ -3,6 +3,14 @@ import LiquidMetal from "./components/LiquidMetal.jsx";
 import { useReveal } from "./hooks.js";
 import { FALLBACK } from "./data/fallback.js";
 
+// Kosong saat lokal (pakai proxy Vite). Saat online, di-set ke URL backend Render
+// lewat env var VITE_API_BASE di Vercel.
+const API = import.meta.env.VITE_API_BASE || "";
+
+// Endpoint Formspree untuk contact form (gratis, tanpa backend).
+// Ganti XXXXXXXX dengan ID form dari dashboard Formspree-mu.
+const FORMSPREE = "https://formspree.io/f/mwvjndzw";
+
 export default function App() {
   const [data, setData] = useState(FALLBACK);
 
@@ -12,8 +20,8 @@ export default function App() {
     (async () => {
       try {
         const [pRes, prRes] = await Promise.all([
-          fetch("/api/profile"),
-          fetch("/api/projects"),
+          fetch(`${API}/api/profile`),
+          fetch(`${API}/api/projects`),
         ]);
         if (!pRes.ok || !prRes.ok) return;
         const prof = await pRes.json();
@@ -289,7 +297,7 @@ const CERTS = [
   {
     src: "/certs/second-winner.jpg",
     title: "Second Winner — Content Poster Competition",
-    issuer: "2rd Social Project Exhibition · 2025",
+    issuer: "3rd Social Project Exhibition · 2025",
   },
 ];
 
@@ -383,22 +391,27 @@ function Contact({ profile }) {
     setSending(true);
     setStatus({ type: "", text: "Mengirim..." });
     try {
-      const res = await fetch("/api/contact", {
+      const res = await fetch(FORMSPREE, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
         body: JSON.stringify(form),
       });
-      const json = await res.json();
       if (res.ok) {
-        setStatus({ type: "ok", text: json.message || "Pesan berhasil terkirim." });
+        setStatus({
+          type: "ok",
+          text: "Pesan Anda telah terkirim. Terima kasih, saya akan segera membalas.",
+        });
         setForm({ name: "", email: "", message: "" });
       } else {
-        setStatus({ type: "err", text: json.detail || "Gagal mengirim pesan." });
+        setStatus({ type: "err", text: "Gagal mengirim pesan. Silakan coba lagi." });
       }
     } catch {
       setStatus({
         type: "err",
-        text: "Tidak dapat terhubung ke server. Pastikan backend sedang berjalan.",
+        text: "Tidak dapat mengirim pesan. Periksa koneksi internet Anda.",
       });
     } finally {
       setSending(false);

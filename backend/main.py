@@ -27,13 +27,10 @@ MAIL_TO = os.getenv("MAIL_TO", GMAIL_USER)                # tujuan notifikasi (d
 
 app = FastAPI(title="Portfolio API", version="1.0.0")
 
-# Saat development Vite jalan di :5173. Tambahkan domain production-mu kalau sudah deploy.
+# Izinkan localhost (development) dan semua subdomain *.vercel.app (production).
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1)(:\d+)?|https://.*\.vercel\.app",
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
