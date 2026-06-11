@@ -604,3 +604,43 @@ img { max-width: 100%; display: block; }
   transition: border-color 0.2s, box-shadow 0.2s;
 }
 .lightbox-close:hover { border-color: var(--magenta); box-shadow: 0 0 20px -4px var(--magenta); }
+
+/* ---------------------- FORM SUCCESS (checkmark) ---------------------- */
+.form-success {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: var(--mono);
+  font-size: 13px;
+  color: var(--amber);
+  animation: successIn 0.4s ease both;
+}
+@keyframes successIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+.check { width: 30px; height: 30px; flex-shrink: 0; }
+.check-circle {
+  fill: none;
+  stroke: var(--amber);
+  stroke-width: 3;
+  stroke-dasharray: 151;
+  stroke-dashoffset: 151;
+  animation: drawCircle 0.5s ease forwards;
+}
+.check-mark {
+  fill: none;
+  stroke: var(--amber);
+  stroke-width: 4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  animation: drawMark 0.3s 0.4s ease forwards;
+}
+@keyframes drawCircle { to { stroke-dashoffset: 0; } }
+@keyframes drawMark { to { stroke-dashoffset: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .check-circle, .check-mark { animation: none; stroke-dashoffset: 0; }
+}

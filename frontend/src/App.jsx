@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import LiquidMetal from "./components/LiquidMetal.jsx";
 import { useReveal } from "./hooks.js";
 import { FALLBACK } from "./data/fallback.js";
@@ -9,7 +9,59 @@ const API = import.meta.env.VITE_API_BASE || "";
 
 // Endpoint Formspree untuk contact form (gratis, tanpa backend).
 // Ganti XXXXXXXX dengan ID form dari dashboard Formspree-mu.
-const FORMSPREE = "https://formspree.io/f/mwvjndzw";
+const FORMSPREE = "https://formspree.io/f/XXXXXXXX";
+
+// Confetti kecil (canvas murni, tanpa library). Meledak dari titik (x, y).
+function fireConfetti(x, y) {
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const canvas = document.createElement("canvas");
+  canvas.style.cssText =
+    "position:fixed;inset:0;pointer-events:none;z-index:9999";
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext("2d");
+  const colors = ["#8b5cf6", "#ec4899", "#fbbf24", "#a78bfa", "#f472b6"];
+  const parts = Array.from({ length: 90 }, () => {
+    const a = Math.random() * Math.PI * 2;
+    const sp = 4 + Math.random() * 7;
+    return {
+      x, y,
+      vx: Math.cos(a) * sp,
+      vy: Math.sin(a) * sp - 4,
+      size: 5 + Math.random() * 6,
+      color: colors[(Math.random() * colors.length) | 0],
+      rot: Math.random() * Math.PI,
+      spin: (Math.random() - 0.5) * 0.3,
+    };
+  });
+  const start = performance.now();
+  let raf;
+  const tick = (t) => {
+    const e = t - start;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    parts.forEach((p) => {
+      p.vy += 0.22;
+      p.vx *= 0.99;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.rot += p.spin;
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, 1 - e / 1800);
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+      ctx.restore();
+    });
+    if (e < 1800) raf = requestAnimationFrame(tick);
+    else {
+      cancelAnimationFrame(raf);
+      canvas.remove();
+    }
+  };
+  raf = requestAnimationFrame(tick);
+}
 
 export default function App() {
   const [data, setData] = useState(FALLBACK);
@@ -382,6 +434,13 @@ function Contact({ profile }) {
   const [form, setForm] = useState({ name: "", email: "", message: "" });
   const [status, setStatus] = useState({ type: "", text: "" });
   const [sending, setSending] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const btnRef = useRef(null);
+
+  const update = (k, v) => {
+    setForm({ ...form, [k]: v });
+    if (success) setSuccess(false); // reset agar bisa muncul lagi
+  };
 
   const submit = async () => {
     if (!form.name || !form.email || !form.message) {
@@ -405,6 +464,9 @@ function Contact({ profile }) {
           text: "Pesan Anda telah terkirim. Terima kasih, saya akan segera membalas.",
         });
         setForm({ name: "", email: "", message: "" });
+        setSuccess(true);
+        const r = btnRef.current?.getBoundingClientRect();
+        if (r) fireConfetti(r.left + r.width / 2, r.top + r.height / 2);
       } else {
         setStatus({ type: "err", text: "Gagal mengirim pesan. Silakan coba lagi." });
       }
@@ -457,7 +519,7 @@ function Contact({ profile }) {
               <input
                 id="name"
                 value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                onChange={(e) => update("name", e.target.value)}
                 placeholder="Nama Anda"
               />
             </div>
@@ -467,7 +529,7 @@ function Contact({ profile }) {
                 id="email"
                 type="email"
                 value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                onChange={(e) => update("email", e.target.value)}
                 placeholder="anda@email.com"
               />
             </div>
@@ -476,14 +538,30 @@ function Contact({ profile }) {
               <textarea
                 id="message"
                 value={form.message}
-                onChange={(e) => setForm({ ...form, message: e.target.value })}
+                onChange={(e) => update("message", e.target.value)}
                 placeholder="Halo Ghatfhaan, ..."
               />
             </div>
-            <button className="btn btn-primary" onClick={submit} disabled={sending}>
+            <button
+              ref={btnRef}
+              className="btn btn-primary"
+              onClick={submit}
+              disabled={sending}
+            >
               {sending ? "Mengirim..." : "Kirim pesan"}
             </button>
-            <p className={`form-status ${status.type}`}>{status.text}</p>
+
+            {success ? (
+              <div className="form-success">
+                <svg className="check" viewBox="0 0 52 52" aria-hidden="true">
+                  <circle className="check-circle" cx="26" cy="26" r="24" />
+                  <path className="check-mark" d="M14 27 L22 35 L38 18" />
+                </svg>
+                <span>{status.text}</span>
+              </div>
+            ) : (
+              <p className={`form-status ${status.type}`}>{status.text}</p>
+            )}
           </div>
         </div>
       </div>
