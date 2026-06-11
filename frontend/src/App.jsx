@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import LiquidMetal from "./components/LiquidMetal.jsx";
+import DataConstellation from "./components/DataConstellation.jsx";
 import { useReveal } from "./hooks.js";
 import { FALLBACK } from "./data/fallback.js";
 
@@ -63,6 +63,17 @@ function fireConfetti(x, y) {
   raf = requestAnimationFrame(tick);
 }
 
+// Perayaan: beberapa ledakan confetti dari beberapa titik di layar.
+function celebrate() {
+  const w = window.innerWidth;
+  const bursts = [
+    [w * 0.5, window.innerHeight * 0.32],
+    [w * 0.2, window.innerHeight * 0.42],
+    [w * 0.8, window.innerHeight * 0.42],
+  ];
+  bursts.forEach(([x, y], i) => setTimeout(() => fireConfetti(x, y), i * 180));
+}
+
 export default function App() {
   const [data, setData] = useState(FALLBACK);
 
@@ -96,6 +107,9 @@ export default function App() {
 
   return (
     <>
+      <Preloader />
+      <CustomCursor />
+      <ScrollProgress />
       <Nav />
       <Hero profile={data.profile} />
       <About profile={data.profile} />
@@ -106,6 +120,111 @@ export default function App() {
       <Footer profile={data.profile} />
     </>
   );
+}
+
+/* ----------------------------- PRELOADER ----------------------------- */
+function Preloader() {
+  const [fading, setFading] = useState(false);
+  const [gone, setGone] = useState(false);
+
+  useEffect(() => {
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    document.body.classList.add("loading");
+    const t1 = setTimeout(() => setFading(true), reduce ? 80 : 1900);
+    const t2 = setTimeout(() => {
+      setGone(true);
+      document.body.classList.remove("loading");
+    }, reduce ? 200 : 2500);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      document.body.classList.remove("loading");
+    };
+  }, []);
+
+  if (gone) return null;
+  return (
+    <div className={`preloader ${fading ? "out" : ""}`}>
+      <div className="preloader-inner">
+        <span className="preloader-name">
+          Muhammad <span className="gradient-text">Ghatfhaan</span> Abdillah
+        </span>
+        <div className="preloader-bar">
+          <span />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ----------------------------- CUSTOM CURSOR ----------------------------- */
+function CustomCursor() {
+  const dotRef = useRef(null);
+  const ringRef = useRef(null);
+
+  useEffect(() => {
+    if (window.matchMedia("(hover: none)").matches) return; // perangkat sentuh
+    const dot = dotRef.current;
+    const ring = ringRef.current;
+    let mx = window.innerWidth / 2,
+      my = window.innerHeight / 2,
+      rx = mx,
+      ry = my;
+
+    const move = (e) => {
+      mx = e.clientX;
+      my = e.clientY;
+      dot.style.transform = `translate(${mx}px, ${my}px)`;
+    };
+    const over = (e) => {
+      const hot = e.target.closest(
+        "a, button, .cert-thumb, .project-card, input, textarea, .chip"
+      );
+      ring.classList.toggle("hover", !!hot);
+    };
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseover", over);
+
+    let raf;
+    const loop = () => {
+      rx += (mx - rx) * 0.18;
+      ry += (my - ry) * 0.18;
+      ring.style.transform = `translate(${rx}px, ${ry}px)`;
+      raf = requestAnimationFrame(loop);
+    };
+    loop();
+    document.body.classList.add("has-cursor");
+
+    return () => {
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("mouseover", over);
+      cancelAnimationFrame(raf);
+      document.body.classList.remove("has-cursor");
+    };
+  }, []);
+
+  return (
+    <>
+      <div ref={dotRef} className="cursor-dot" aria-hidden="true" />
+      <div ref={ringRef} className="cursor-ring" aria-hidden="true" />
+    </>
+  );
+}
+
+/* ----------------------------- SCROLL PROGRESS ----------------------------- */
+function ScrollProgress() {
+  const [p, setP] = useState(0);
+  useEffect(() => {
+    const onScroll = () => {
+      const h = document.documentElement;
+      const max = h.scrollHeight - h.clientHeight;
+      setP(max > 0 ? (h.scrollTop / max) * 100 : 0);
+    };
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+  return <div className="scroll-progress" style={{ width: `${p}%` }} />;
 }
 
 /* ----------------------------- NAV ----------------------------- */
@@ -140,7 +259,7 @@ function Nav() {
 function Hero({ profile }) {
   return (
     <header className="hero" id="top">
-      <LiquidMetal />
+      <DataConstellation />
       <div className="container hero-inner">
         <span className="hero-status">
           <span className="status-dot" />
@@ -435,7 +554,14 @@ function Contact({ profile }) {
   const [status, setStatus] = useState({ type: "", text: "" });
   const [sending, setSending] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const btnRef = useRef(null);
+
+  useEffect(() => {
+    const onKey = (e) => e.key === "Escape" && setShowModal(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const update = (k, v) => {
     setForm({ ...form, [k]: v });
@@ -465,8 +591,8 @@ function Contact({ profile }) {
         });
         setForm({ name: "", email: "", message: "" });
         setSuccess(true);
-        const r = btnRef.current?.getBoundingClientRect();
-        if (r) fireConfetti(r.left + r.width / 2, r.top + r.height / 2);
+        setShowModal(true);
+        celebrate();
       } else {
         setStatus({ type: "err", text: "Gagal mengirim pesan. Silakan coba lagi." });
       }
@@ -565,6 +691,34 @@ function Contact({ profile }) {
           </div>
         </div>
       </div>
+
+      {showModal && (
+        <div
+          className="success-modal"
+          onClick={() => setShowModal(false)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="success-card" onClick={(e) => e.stopPropagation()}>
+            <svg className="check check-lg" viewBox="0 0 52 52" aria-hidden="true">
+              <circle className="check-circle" cx="26" cy="26" r="24" />
+              <path className="check-mark" d="M14 27 L22 35 L38 18" />
+            </svg>
+            <h3 className="success-title">Pesan Terkirim!</h3>
+            <p className="success-text">
+              Terima kasih sudah menghubungi saya. Saya akan segera membalas
+              melalui email.
+            </p>
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={() => setShowModal(false)}
+            >
+              Tutup
+            </button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
